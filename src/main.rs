@@ -1,6 +1,4 @@
 use chrono::{Datelike, NaiveDateTime};
-use itertools::Itertools;
-use std::collections::HashMap;
 use std::env;
 use std::fs;
 
@@ -87,6 +85,27 @@ impl DayReport {
     }
 }
 
+fn day_reports_from_entries(entries: &Vec<ReportEntry>, year: i32) -> Vec<DayReport> {
+    let mut day_reports = Vec::<DayReport>::new();
+    for entry in entries {
+        let from_dt = parse_datetime(year, entry.from).unwrap();
+        let to_dt = parse_datetime(year, entry.to).unwrap();
+        assert_eq!(from_dt.date(), to_dt.date());
+        let date = from_dt.date();
+        let duration = to_dt.signed_duration_since(from_dt);
+        let pos = if let Some(pos) = day_reports.iter().position(|x| x.date == date) {
+            pos
+        } else {
+            day_reports.push(DayReport::new(date));
+            day_reports.len() - 1
+        };
+        let report = &mut day_reports.get_mut(pos).unwrap();
+        report.seconds += duration.num_seconds();
+    }
+    day_reports.sort_by(|a, b| a.date.cmp(&b.date));
+    day_reports
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let name = args.get(0).expect("Failed to get executable name");
@@ -97,28 +116,18 @@ fn main() {
     let entries = read_report(&file_contents);
     let year = chrono::Local::now().year();
 
-    let mut day_reports = HashMap::new();
-    for entry in entries {
-        let from_dt = parse_datetime(year, entry.from).unwrap();
-        let to_dt = parse_datetime(year, entry.to).unwrap();
-        assert_eq!(from_dt.date(), to_dt.date());
-        let date = from_dt.date();
-        let duration = to_dt.signed_duration_since(from_dt);
-        let report = day_reports.entry(date).or_insert(DayReport::new(date));
-        report.seconds += duration.num_seconds();
-    }
-
+    let day_reports = day_reports_from_entries(&entries, year);
     let mut month_output: Option<u32> = None;
     let mut week_output: Option<u32> = None;
 
-    for date in day_reports.keys().sorted() {
-        let month = date.month();
+    for report in day_reports.iter() {
+        let month = report.date.month();
         if match month_output.replace(month) {
             Some(old_month) => month != old_month,
             None => true,
         } {
             let seconds: i64 = day_reports
-                .values()
+                .iter()
                 .filter_map(|report| {
                     if report.date.month() == month {
                         Some(report.seconds)
@@ -131,19 +140,19 @@ fn main() {
             println!(
                 "{} {}   {:03}:{:02}",
                 month_to_string(month),
-                date.year(),
+                report.date.year(),
                 duration.num_hours(),
                 duration.num_minutes() % 60
             );
             week_output = None
         }
-        let week = date.iso_week().week();
+        let week = report.date.iso_week().week();
         if match week_output.replace(week) {
             Some(old_week) => week != old_week,
             None => true,
         } {
             let seconds: i64 = day_reports
-                .values()
+                .iter()
                 .filter_map(|report| {
                     if report.date.month() == month && report.date.iso_week().week() == week {
                         Some(report.seconds)
@@ -161,12 +170,11 @@ fn main() {
             );
         }
 
-        let report = day_reports.get(date).unwrap();
         let duration = chrono::Duration::seconds(report.seconds);
         println!(
             "    {:02} {}  {:02}:{:02}",
-            date.day(),
-            date.weekday(),
+            report.date.day(),
+            report.date.weekday(),
             duration.num_hours(),
             duration.num_minutes() % 60
         );
