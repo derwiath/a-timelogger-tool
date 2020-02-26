@@ -117,6 +117,7 @@ fn main() {
     let year = chrono::Local::now().year();
 
     let day_reports = day_reports_from_entries(&entries, year);
+
     let mut month_output: Option<u32> = None;
     let mut week_output: Option<u32> = None;
 
