@@ -51,11 +51,29 @@ fn read_report<'a>(file_contents: &'a String) -> Vec<ReportEntry<'a>> {
 }
 
 fn parse_datetime(
-    year: u32,
+    year: i32,
     entry_datetime: &str,
 ) -> Result<chrono::NaiveDateTime, chrono::ParseError> {
     let s = format!("{} {}", year, entry_datetime);
     NaiveDateTime::parse_from_str(s.as_str(), "%Y %d %b %H:%M")
+}
+
+fn month_to_string(month: u32) -> &'static str {
+    match month {
+        1 => "Jan",
+        2 => "Feb",
+        3 => "Mar",
+        4 => "Apr",
+        5 => "May",
+        6 => "Jun",
+        7 => "Jul",
+        8 => "Aug",
+        9 => "Sep",
+        10 => "Oct",
+        11 => "Nov",
+        12 => "Dec",
+        _ => panic!("{} is not a valid month", month),
+    }
 }
 
 fn main() {
@@ -66,7 +84,7 @@ fn main() {
         .expect(format!("Usage: {} <report-csv>", name).as_str());
     let file_contents = fs::read_to_string(filename).expect("Failed to read report file");
     let entries = read_report(&file_contents);
-    let year: u32 = 2020;
+    let year = chrono::Local::now().year();
 
     let mut date_seconds = HashMap::new();
     let mut month_seconds = HashMap::new();
@@ -79,12 +97,6 @@ fn main() {
         {
             let seconds = date_seconds.entry(date).or_insert(0);
             *seconds += duration.num_seconds();
-            println!(
-                "{} +{:02}:{:02}",
-                date,
-                duration.num_hours(),
-                duration.num_minutes() % 60
-            );
         }
 
         let month = chrono::NaiveDate::from_ymd(date.year(), date.month(), 1);
@@ -92,25 +104,41 @@ fn main() {
         *seconds += duration.num_seconds();
     }
 
+    let mut month_output: Option<u32> = None;
+    let mut week_output: Option<u32> = None;
+
     for date in date_seconds.keys().sorted() {
+        let month = date.month();
+        if match month_output.replace(month) {
+            Some(old_month) => month != old_month,
+            None => true,
+        } {
+            let first_in_month = chrono::NaiveDate::from_ymd(date.year(), month, 1);
+            let seconds = month_seconds.get(&first_in_month).unwrap();
+            let duration = chrono::Duration::seconds(*seconds);
+            println!(
+                "{} {}   {:03}:{:02}",
+                month_to_string(month),
+                date.year(),
+                duration.num_hours(),
+                duration.num_minutes() % 60
+            );
+            week_output = None
+        }
+        let week = date.iso_week().week();
+        if match week_output.replace(week) {
+            Some(old_week) => week != old_week,
+            None => true,
+        } {
+            println!("  Week {:02}", week);
+        }
+
         let seconds = date_seconds.get(date).unwrap();
         let duration = chrono::Duration::seconds(*seconds);
         println!(
-            "{} {} {} {:02}:{:02}",
-            date,
-            date.iso_week().week(),
+            "    {:02} {}  {:02}:{:02}",
+            date.day(),
             date.weekday(),
-            duration.num_hours(),
-            duration.num_minutes() % 60
-        );
-    }
-    for date in month_seconds.keys().sorted() {
-        let seconds = month_seconds.get(date).unwrap();
-        let duration = chrono::Duration::seconds(*seconds);
-        println!(
-            "{}-{:02}-** {:03}:{:02}",
-            date.year(),
-            date.month(),
             duration.num_hours(),
             duration.num_minutes() % 60
         );
