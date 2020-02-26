@@ -1,4 +1,6 @@
-use chrono::NaiveDateTime;
+use chrono::{Datelike, NaiveDateTime};
+use itertools::Itertools;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 
@@ -66,15 +68,31 @@ fn main() {
     let entries = read_report(&file_contents);
     let year: u32 = 2020;
 
+    let mut date_seconds = HashMap::new();
     for entry in entries {
-        println!("{:?}", entry);
         let from_dt = parse_datetime(year, entry.from).unwrap();
         let to_dt = parse_datetime(year, entry.to).unwrap();
         assert_eq!(from_dt.date(), to_dt.date());
         let date = from_dt.date();
         let duration = to_dt.signed_duration_since(from_dt);
+        let seconds = date_seconds.entry(date).or_insert(0);
+        *seconds += duration.num_seconds();
         println!(
-            "  duration {:02}:{:02}",
+            "{} +{:02}:{:02}",
+            date,
+            duration.num_hours(),
+            duration.num_minutes() % 60
+        );
+    }
+
+    for date in date_seconds.keys().sorted() {
+        let seconds = date_seconds.get(date).unwrap();
+        let duration = chrono::Duration::seconds(*seconds);
+        println!(
+            "{} {} {} {:02}:{:02}",
+            date,
+            date.iso_week().week(),
+            date.weekday(),
             duration.num_hours(),
             duration.num_minutes() % 60
         );
