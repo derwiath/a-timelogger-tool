@@ -76,6 +76,17 @@ fn month_to_string(month: u32) -> &'static str {
     }
 }
 
+struct DayReport {
+    date: chrono::NaiveDate,
+    seconds: i64,
+}
+
+impl DayReport {
+    fn new(date: chrono::NaiveDate) -> DayReport {
+        DayReport { date, seconds: 0 }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let name = args.get(0).expect("Failed to get executable name");
@@ -86,36 +97,37 @@ fn main() {
     let entries = read_report(&file_contents);
     let year = chrono::Local::now().year();
 
-    let mut date_seconds = HashMap::new();
-    let mut month_seconds = HashMap::new();
+    let mut day_reports = HashMap::new();
     for entry in entries {
         let from_dt = parse_datetime(year, entry.from).unwrap();
         let to_dt = parse_datetime(year, entry.to).unwrap();
         assert_eq!(from_dt.date(), to_dt.date());
         let date = from_dt.date();
         let duration = to_dt.signed_duration_since(from_dt);
-        {
-            let seconds = date_seconds.entry(date).or_insert(0);
-            *seconds += duration.num_seconds();
-        }
-
-        let month = chrono::NaiveDate::from_ymd(date.year(), date.month(), 1);
-        let seconds = month_seconds.entry(month).or_insert(0);
-        *seconds += duration.num_seconds();
+        let report = day_reports.entry(date).or_insert(DayReport::new(date));
+        report.seconds += duration.num_seconds();
     }
 
     let mut month_output: Option<u32> = None;
     let mut week_output: Option<u32> = None;
 
-    for date in date_seconds.keys().sorted() {
+    for date in day_reports.keys().sorted() {
         let month = date.month();
         if match month_output.replace(month) {
             Some(old_month) => month != old_month,
             None => true,
         } {
-            let first_in_month = chrono::NaiveDate::from_ymd(date.year(), month, 1);
-            let seconds = month_seconds.get(&first_in_month).unwrap();
-            let duration = chrono::Duration::seconds(*seconds);
+            let seconds: i64 = day_reports
+                .values()
+                .filter_map(|report| {
+                    if report.date.month() == month {
+                        Some(report.seconds)
+                    } else {
+                        None
+                    }
+                })
+                .sum();
+            let duration = chrono::Duration::seconds(seconds);
             println!(
                 "{} {}   {:03}:{:02}",
                 month_to_string(month),
@@ -130,11 +142,27 @@ fn main() {
             Some(old_week) => week != old_week,
             None => true,
         } {
-            println!("  Week {:02}", week);
+            let seconds: i64 = day_reports
+                .values()
+                .filter_map(|report| {
+                    if report.date.month() == month && report.date.iso_week().week() == week {
+                        Some(report.seconds)
+                    } else {
+                        None
+                    }
+                })
+                .sum();
+            let duration = chrono::Duration::seconds(seconds);
+            println!(
+                "  Week {:02}   {:02}:{:02}",
+                week,
+                duration.num_hours(),
+                duration.num_minutes() % 60
+            );
         }
 
-        let seconds = date_seconds.get(date).unwrap();
-        let duration = chrono::Duration::seconds(*seconds);
+        let report = day_reports.get(date).unwrap();
+        let duration = chrono::Duration::seconds(report.seconds);
         println!(
             "    {:02} {}  {:02}:{:02}",
             date.day(),
