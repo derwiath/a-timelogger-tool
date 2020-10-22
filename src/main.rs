@@ -123,17 +123,18 @@ fn process_file(filename: &str) {
             None => true,
         };
         if new_month {
-            let seconds: i64 = day_reports
-                .iter()
-                .filter_map(|report| {
-                    if report.date.month() == month {
-                        Some(report.seconds)
-                    } else {
-                        None
-                    }
-                })
+            let month_day_reports = day_reports.iter().filter_map(|report| {
+                if report.date.month() == month {
+                    Some(report)
+                } else {
+                    None
+                }
+            });
+            let minutes: i64 = month_day_reports
+                .clone()
+                .filter_map(|report| Some(report.seconds / 60))
                 .sum();
-            let duration = chrono::Duration::seconds(seconds);
+            let duration = chrono::Duration::minutes(minutes);
             println!(
                 "{} {}   {:03}:{:02}",
                 month_to_string(month),
@@ -149,17 +150,18 @@ fn process_file(filename: &str) {
             None => true,
         };
         if new_week {
-            let seconds: i64 = day_reports
-                .iter()
-                .filter_map(|report| {
-                    if report.date.month() == month && report.date.iso_week().week() == week {
-                        Some(report.seconds)
-                    } else {
-                        None
-                    }
-                })
+            let week_day_reports = day_reports.iter().filter_map(|report| {
+                if report.date.month() == month && report.date.iso_week().week() == week {
+                    Some(report)
+                } else {
+                    None
+                }
+            });
+            let minutes: i64 = week_day_reports
+                .clone()
+                .filter_map(|report| Some(report.seconds / 60))
                 .sum();
-            let duration = chrono::Duration::seconds(seconds);
+            let duration = chrono::Duration::minutes(minutes);
             println!(
                 "  Week {:02}   {:02}:{:02}",
                 week,
@@ -168,7 +170,8 @@ fn process_file(filename: &str) {
             );
         }
 
-        let duration = chrono::Duration::seconds(report.seconds);
+        let minutes = report.seconds / 60;
+        let duration = chrono::Duration::minutes(minutes);
         println!(
             "    {:02} {}  {:02}:{:02}",
             report.date.day(),
