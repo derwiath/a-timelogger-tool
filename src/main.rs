@@ -118,10 +118,11 @@ fn process_file(filename: &str) {
 
     for report in day_reports.iter() {
         let month = report.date.month();
-        if match month_output.replace(month) {
+        let new_month = match month_output.replace(month) {
             Some(old_month) => month != old_month,
             None => true,
-        } {
+        };
+        if new_month {
             let seconds: i64 = day_reports
                 .iter()
                 .filter_map(|report| {
@@ -143,10 +144,11 @@ fn process_file(filename: &str) {
             week_output = None
         }
         let week = report.date.iso_week().week();
-        if match week_output.replace(week) {
+        let new_week = match week_output.replace(week) {
             Some(old_week) => week != old_week,
             None => true,
-        } {
+        };
+        if new_week {
             let seconds: i64 = day_reports
                 .iter()
                 .filter_map(|report| {
