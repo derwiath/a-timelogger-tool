@@ -139,7 +139,7 @@ fn process_file(filename: &str) {
                 month_to_string(month),
                 report.date.year(),
                 duration.num_hours(),
-                duration.num_minutes() % 60
+                duration.num_minutes() % 60,
             );
             week_output = None
         }
@@ -164,7 +164,7 @@ fn process_file(filename: &str) {
                 "  Week {:02}   {:02}:{:02}",
                 week,
                 duration.num_hours(),
-                duration.num_minutes() % 60
+                duration.num_minutes() % 60,
             );
         }
 
@@ -174,7 +174,7 @@ fn process_file(filename: &str) {
             report.date.day(),
             report.date.weekday(),
             duration.num_hours(),
-            duration.num_minutes() % 60
+            duration.num_minutes() % 60,
         );
     }
 }
