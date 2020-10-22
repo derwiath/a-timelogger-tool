@@ -106,7 +106,7 @@ fn day_reports_from_entries(entries: &Vec<ReportEntry>, year: i32) -> Vec<DayRep
     day_reports
 }
 
-fn process_file(filename: &str) {
+fn process_file(filename: &str, print_remainder: bool) {
     let file_contents = fs::read_to_string(filename).expect("Failed to read report file");
     let entries = read_report(&file_contents);
     let year = chrono::Local::now().year();
@@ -133,15 +133,29 @@ fn process_file(filename: &str) {
             let minutes: i64 = month_day_reports
                 .clone()
                 .filter_map(|report| Some(report.seconds / 60))
+                .filter_map(|minutes| Some((minutes / 3) * 3))
                 .sum();
             let duration = chrono::Duration::minutes(minutes);
-            println!(
+            let duration_remainder = if print_remainder {
+                let minutes_remainder: i64 = month_day_reports
+                    .filter_map(|report| Some(report.seconds / 60))
+                    .filter_map(|minutes| Some(minutes % 3))
+                    .sum();
+                Some(chrono::Duration::minutes(minutes_remainder))
+            } else {
+                None
+            };
+            print!(
                 "{} {}   {:03}:{:02}",
                 month_to_string(month),
                 report.date.year(),
                 duration.num_hours(),
                 duration.num_minutes() % 60,
             );
+            if let Some(remainder) = duration_remainder {
+                print!(" +{}", remainder.num_minutes());
+            }
+            println!();
             week_output = None
         }
         let week = report.date.iso_week().week();
@@ -160,25 +174,49 @@ fn process_file(filename: &str) {
             let minutes: i64 = week_day_reports
                 .clone()
                 .filter_map(|report| Some(report.seconds / 60))
+                .filter_map(|minutes| Some((minutes / 3) * 3))
                 .sum();
             let duration = chrono::Duration::minutes(minutes);
-            println!(
+            let duration_remainder = if print_remainder {
+                let minutes_remainder: i64 = week_day_reports
+                    .filter_map(|report| Some(report.seconds / 60))
+                    .filter_map(|minutes| Some(minutes % 3))
+                    .sum();
+                Some(chrono::Duration::minutes(minutes_remainder))
+            } else {
+                None
+            };
+            print!(
                 "  Week {:02}   {:02}:{:02}",
                 week,
                 duration.num_hours(),
                 duration.num_minutes() % 60,
             );
+            if let Some(remainder) = duration_remainder {
+                print!(" +{}", remainder.num_minutes());
+            }
+            println!();
         }
 
-        let minutes = report.seconds / 60;
+        let minutes = report.seconds / (60 * 3) * 3;
         let duration = chrono::Duration::minutes(minutes);
-        println!(
+        let duration_remainder = if print_remainder {
+            let minutes_remainder = report.seconds / 60 % 3;
+            Some(chrono::Duration::minutes(minutes_remainder))
+        } else {
+            None
+        };
+        print!(
             "    {:02} {}  {:02}:{:02}",
             report.date.day(),
             report.date.weekday(),
             duration.num_hours(),
             duration.num_minutes() % 60,
         );
+        if let Some(remainder) = duration_remainder {
+            print!(" +{}", remainder.num_minutes());
+        }
+        println!();
     }
 }
 
@@ -188,5 +226,5 @@ fn main() {
     let filename = args
         .get(1)
         .expect(format!("Usage: {} <report-csv>", name).as_str());
-    process_file(&filename);
+    process_file(&filename, true);
 }
