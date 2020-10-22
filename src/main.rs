@@ -106,12 +106,7 @@ fn day_reports_from_entries(entries: &Vec<ReportEntry>, year: i32) -> Vec<DayRep
     day_reports
 }
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let name = args.get(0).expect("Failed to get executable name");
-    let filename = args
-        .get(1)
-        .expect(format!("Usage: {} <report-csv>", name).as_str());
+fn process_file(filename: &str) {
     let file_contents = fs::read_to_string(filename).expect("Failed to read report file");
     let entries = read_report(&file_contents);
     let year = chrono::Local::now().year();
@@ -180,4 +175,13 @@ fn main() {
             duration.num_minutes() % 60
         );
     }
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let name = args.get(0).expect("Failed to get executable name");
+    let filename = args
+        .get(1)
+        .expect(format!("Usage: {} <report-csv>", name).as_str());
+    process_file(&filename);
 }
