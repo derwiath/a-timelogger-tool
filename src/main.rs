@@ -1,4 +1,5 @@
-use chrono::{Datelike, NaiveDateTime};
+use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime};
+use std::cmp;
 use std::env;
 use std::fs;
 
@@ -90,17 +91,29 @@ fn day_reports_from_entries(entries: &Vec<ReportEntry>, year: i32) -> Vec<DayRep
     for entry in entries {
         let from_dt = parse_datetime(year, entry.from).unwrap();
         let to_dt = parse_datetime(year, entry.to).unwrap();
-        assert_eq!(from_dt.date(), to_dt.date());
-        let date = from_dt.date();
-        let duration = to_dt.signed_duration_since(from_dt);
-        let pos = if let Some(pos) = day_reports.iter().position(|x| x.date == date) {
-            pos
+        if to_dt >= from_dt {
+            let mut dt = from_dt.clone();
+            while dt <= to_dt {
+                let date = dt.date();
+                let pos = if let Some(pos) = day_reports.iter().position(|x| x.date == date) {
+                    pos
+                } else {
+                    day_reports.push(DayReport::new(date));
+                    day_reports.len() - 1
+                };
+                let report = &mut day_reports.get_mut(pos).unwrap();
+
+                let next_date = date.checked_add_signed(Duration::days(1)).unwrap();
+                let midnight = NaiveDateTime::new(next_date, NaiveTime::from_hms(0, 0, 0));
+                let duration_to_midnight = midnight.signed_duration_since(dt);
+                let duration_to_dt = to_dt.signed_duration_since(dt);
+                let seconds = cmp::min(duration_to_midnight, duration_to_dt).num_seconds();
+                report.seconds += seconds;
+                dt = midnight;
+            }
         } else {
-            day_reports.push(DayReport::new(date));
-            day_reports.len() - 1
-        };
-        let report = &mut day_reports.get_mut(pos).unwrap();
-        report.seconds += duration.num_seconds();
+            panic!("{} < {}", to_dt, from_dt);
+        }
     }
     day_reports.sort_by(|a, b| a.date.cmp(&b.date));
     day_reports
@@ -227,4 +240,44 @@ fn main() {
         .get(1)
         .expect(format!("Usage: {} <report-csv>", name).as_str());
     process_file(&filename, true);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_day_reports_from_entries() {
+        let year = 2020;
+        let day1_str = "1 Jan";
+        let day2_str = "2 Jan";
+        let day3_str = "3 Jan";
+        let line = format!("Work;0,2;{} 23:59;{} 00:02;", day1_str, day3_str);
+        let entries = read_report(&line);
+        let day_reports = day_reports_from_entries(&entries, year);
+
+        let date1 = chrono::NaiveDate::parse_from_str(
+            format!("{} {}", year, day1_str).as_str(),
+            "%Y %d %b",
+        )
+        .unwrap();
+        assert_eq!(day_reports[0].date, date1);
+        assert_eq!(day_reports[0].seconds, 60);
+
+        let date2 = chrono::NaiveDate::parse_from_str(
+            format!("{} {}", year, day2_str).as_str(),
+            "%Y %d %b",
+        )
+        .unwrap();
+        assert_eq!(day_reports[1].date, date2);
+        assert_eq!(day_reports[1].seconds, 24 * 60 * 60);
+
+        let date3 = chrono::NaiveDate::parse_from_str(
+            format!("{} {}", year, day3_str).as_str(),
+            "%Y %d %b",
+        )
+        .unwrap();
+        assert_eq!(day_reports[2].date, date3);
+        assert_eq!(day_reports[2].seconds, 120);
+    }
 }
