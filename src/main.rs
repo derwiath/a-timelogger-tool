@@ -31,7 +31,7 @@ impl<'a> ReportEntry<'_> {
     }
 }
 
-fn read_report<'a>(file_contents: &'a String) -> Vec<ReportEntry<'a>> {
+fn read_report<'a>(file_contents: &'a str) -> Vec<ReportEntry<'a>> {
     let mut entries = Vec::<ReportEntry<'a>>::new();
     for line in file_contents.lines() {
         let tokens: Vec<&str> = line.split(';').collect();
