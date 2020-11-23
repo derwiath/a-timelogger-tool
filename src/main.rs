@@ -247,7 +247,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_day_reports_from_entries() {
+    fn one_entry_spanning_two_midnights_yield_three_day_reports() {
         let year = 2020;
         let day1_str = "1 Jan";
         let day2_str = "2 Jan";
@@ -279,5 +279,7 @@ mod tests {
         .unwrap();
         assert_eq!(day_reports[2].date, date3);
         assert_eq!(day_reports[2].seconds, 120);
+
+        assert_eq!(day_reports.len(), 3);
     }
 }
