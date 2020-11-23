@@ -247,6 +247,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn one_entry_spanning_midnight_to_midnight_yield_one_day_report() {
+        let year = 2020;
+        let day1_str = "1 Jan";
+        let line = format!("Work;23,59;{0} 00:00;{0} 23:59;", day1_str);
+        let entries = read_report(&line);
+        let day_reports = day_reports_from_entries(&entries, year);
+
+        let date1 = chrono::NaiveDate::parse_from_str(
+            format!("{} {}", year, day1_str).as_str(),
+            "%Y %d %b",
+        )
+        .unwrap();
+        assert_eq!(day_reports[0].date, date1);
+        assert_eq!(day_reports[0].seconds, 24 * 60 * 60 - 60);
+
+        assert_eq!(day_reports.len(), 1);
+    }
+
+    #[test]
     fn one_entry_spanning_two_midnights_yield_three_day_reports() {
         let year = 2020;
         let day1_str = "1 Jan";
