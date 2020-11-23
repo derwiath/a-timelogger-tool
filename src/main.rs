@@ -266,6 +266,29 @@ mod tests {
     }
 
     #[test]
+    fn two_entries_on_same_day_yield_one_day_report() {
+        let year = 2020;
+        let day1_str = "1 Jan";
+        let line = format!(
+            r"Work;0,1;{0} 00:00;{0} 00:01;
+              Work;1,0;{0} 01:00;{0} 02:00;",
+            day1_str
+        );
+        let entries = read_report(&line);
+        let day_reports = day_reports_from_entries(&entries, year);
+
+        let date1 = chrono::NaiveDate::parse_from_str(
+            format!("{} {}", year, day1_str).as_str(),
+            "%Y %d %b",
+        )
+        .unwrap();
+        assert_eq!(day_reports[0].date, date1);
+        assert_eq!(day_reports[0].seconds, 60 * 60 + 60);
+
+        assert_eq!(day_reports.len(), 1);
+    }
+
+    #[test]
     fn one_entry_spanning_two_midnights_yield_three_day_reports() {
         let year = 2020;
         let day1_str = "1 Jan";
