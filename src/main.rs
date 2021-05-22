@@ -1,9 +1,10 @@
 use chrono::{Datelike, Duration, NaiveDateTime, NaiveTime};
 use std::cmp;
-use std::env;
 use std::fs;
 
 extern crate chrono;
+
+mod config;
 
 #[derive(Debug)]
 struct ReportEntry<'a> {
@@ -119,8 +120,8 @@ fn day_reports_from_entries(entries: &Vec<ReportEntry>, year: i32) -> Vec<DayRep
     day_reports
 }
 
-fn process_file(filename: &str, print_remainder: bool) {
-    let file_contents = fs::read_to_string(filename).expect("Failed to read report file");
+fn process_file(config: &config::Config) {
+    let file_contents = fs::read_to_string(&config.input).expect("Failed to read report file");
     let entries = read_report(&file_contents);
     let year = chrono::Local::now().year();
 
@@ -149,7 +150,7 @@ fn process_file(filename: &str, print_remainder: bool) {
                 .filter_map(|minutes| Some((minutes / 3) * 3))
                 .sum();
             let duration = chrono::Duration::minutes(minutes);
-            let duration_remainder = if print_remainder {
+            let duration_remainder = if config.verbose {
                 let minutes_remainder: i64 = month_day_reports
                     .filter_map(|report| Some(report.seconds / 60))
                     .filter_map(|minutes| Some(minutes % 3))
@@ -190,7 +191,7 @@ fn process_file(filename: &str, print_remainder: bool) {
                 .filter_map(|minutes| Some((minutes / 3) * 3))
                 .sum();
             let duration = chrono::Duration::minutes(minutes);
-            let duration_remainder = if print_remainder {
+            let duration_remainder = if config.verbose {
                 let minutes_remainder: i64 = week_day_reports
                     .filter_map(|report| Some(report.seconds / 60))
                     .filter_map(|minutes| Some(minutes % 3))
@@ -213,7 +214,7 @@ fn process_file(filename: &str, print_remainder: bool) {
 
         let minutes = report.seconds / (60 * 3) * 3;
         let duration = chrono::Duration::minutes(minutes);
-        let duration_remainder = if print_remainder {
+        let duration_remainder = if config.verbose {
             let minutes_remainder = report.seconds / 60 % 3;
             Some(chrono::Duration::minutes(minutes_remainder))
         } else {
@@ -234,12 +235,8 @@ fn process_file(filename: &str, print_remainder: bool) {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let name = args.get(0).expect("Failed to get executable name");
-    let filename = args
-        .get(1)
-        .expect(format!("Usage: {} <report-csv>", name).as_str());
-    process_file(&filename, true);
+    let config = config::parse_args();
+    process_file(&config);
 }
 
 #[cfg(test)]
