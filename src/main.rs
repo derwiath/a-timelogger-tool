@@ -147,13 +147,15 @@ fn process_file(config: &config::Config) {
             let minutes: i64 = month_day_reports
                 .clone()
                 .filter_map(|report| Some(report.seconds / 60))
-                .filter_map(|minutes| Some((minutes / 3) * 3))
+                .filter_map(|minutes| {
+                    Some((minutes / config.minutes_per_unit) * config.minutes_per_unit)
+                })
                 .sum();
             let duration = chrono::Duration::minutes(minutes);
             let duration_remainder = if config.verbose {
                 let minutes_remainder: i64 = month_day_reports
                     .filter_map(|report| Some(report.seconds / 60))
-                    .filter_map(|minutes| Some(minutes % 3))
+                    .filter_map(|minutes| Some(minutes % config.minutes_per_unit))
                     .sum();
                 Some(chrono::Duration::minutes(minutes_remainder))
             } else {
@@ -188,13 +190,15 @@ fn process_file(config: &config::Config) {
             let minutes: i64 = week_day_reports
                 .clone()
                 .filter_map(|report| Some(report.seconds / 60))
-                .filter_map(|minutes| Some((minutes / 3) * 3))
+                .filter_map(|minutes| {
+                    Some((minutes / config.minutes_per_unit) * config.minutes_per_unit)
+                })
                 .sum();
             let duration = chrono::Duration::minutes(minutes);
             let duration_remainder = if config.verbose {
                 let minutes_remainder: i64 = week_day_reports
                     .filter_map(|report| Some(report.seconds / 60))
-                    .filter_map(|minutes| Some(minutes % 3))
+                    .filter_map(|minutes| Some(minutes % config.minutes_per_unit))
                     .sum();
                 Some(chrono::Duration::minutes(minutes_remainder))
             } else {
@@ -212,10 +216,10 @@ fn process_file(config: &config::Config) {
             println!();
         }
 
-        let minutes = report.seconds / (60 * 3) * 3;
+        let minutes = report.seconds / (60 * config.minutes_per_unit) * config.minutes_per_unit;
         let duration = chrono::Duration::minutes(minutes);
         let duration_remainder = if config.verbose {
-            let minutes_remainder = report.seconds / 60 % 3;
+            let minutes_remainder = report.seconds / 60 % config.minutes_per_unit;
             Some(chrono::Duration::minutes(minutes_remainder))
         } else {
             None

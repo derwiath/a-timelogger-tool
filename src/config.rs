@@ -2,6 +2,7 @@ use clap::{App, Arg};
 
 pub struct Config {
     pub input: String,
+    pub minutes_per_unit: i64,
     pub verbose: bool,
 }
 
@@ -38,12 +39,19 @@ Reads a report from aTimeLogger and prints a condenced report.
             )
             .arg(
                 Arg::with_name("INPUT")
-                    .help("Sets the input file to use")
+                    .help("Sets the input report file")
                     .required(true)
                     .index(1),
             )
             .arg(
-                Arg::with_name("verbose")
+                Arg::with_name("MINUTES_PER_UNIT")
+                    .short("u")
+                    .long("minutes-per-unit")
+                    .help("Minimum unit of reporting, in minutes")
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name("VERBOSE")
                     .short("v")
                     .long("verbose")
                     .help("Print remainder"),
@@ -51,8 +59,14 @@ Reads a report from aTimeLogger and prints a condenced report.
             .get_matches();
 
         let input: String = matches.value_of("INPUT").unwrap().to_string();
-        let verbose = matches.is_present("verbose");
+        let minutes_per_unit = matches.value_of("MINUTES_PER_UNIT").unwrap_or("15");
+        let minutes_per_unit = minutes_per_unit.parse::<i64>().unwrap();
+        let verbose = matches.is_present("VERBOSE");
 
-        Config { input, verbose }
+        Config {
+            input,
+            minutes_per_unit,
+            verbose,
+        }
     }
 }
