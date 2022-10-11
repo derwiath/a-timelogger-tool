@@ -7,6 +7,7 @@ extern crate chrono;
 mod config;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct ReportEntry<'a> {
     activity: &'a str,
     duration: &'a str,
