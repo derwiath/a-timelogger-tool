@@ -106,7 +106,8 @@ fn day_reports_from_entries(entries: &Vec<ReportEntry>, year: i32) -> Vec<DayRep
                 let report = &mut day_reports.get_mut(pos).unwrap();
 
                 let next_date = date.checked_add_signed(Duration::days(1)).unwrap();
-                let midnight = NaiveDateTime::new(next_date, NaiveTime::from_hms(0, 0, 0));
+                let midnight =
+                    NaiveDateTime::new(next_date, NaiveTime::from_hms_opt(0, 0, 0).unwrap());
                 let duration_to_midnight = midnight.signed_duration_since(dt);
                 let duration_to_dt = to_dt.signed_duration_since(dt);
                 let seconds = cmp::min(duration_to_midnight, duration_to_dt).num_seconds();
