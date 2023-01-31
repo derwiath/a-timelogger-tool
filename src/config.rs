@@ -59,7 +59,7 @@ Reads a report from aTimeLogger and prints a condenced report.
             .get_matches();
 
         let input: String = matches.value_of("INPUT").unwrap().to_string();
-        let minutes_per_unit = matches.value_of("MINUTES_PER_UNIT").unwrap_or("15");
+        let minutes_per_unit = matches.value_of("MINUTES_PER_UNIT").unwrap_or("3");
         let minutes_per_unit = minutes_per_unit.parse::<i64>().unwrap();
         let verbose = matches.is_present("VERBOSE");
 
